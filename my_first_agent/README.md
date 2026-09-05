@@ -7,16 +7,14 @@
 
 ### System Designer Name
 
-[Enter your name.]
+Alexis 
 
 
 ### System Name
-
-[Use a default name "HackTrack" or enter the name you choose for the system.]
+Hack Track 
 
 ### System Goal
-[Read Chapter 2 Section 2.1, then enter the well-structured goal of your agentic system]
+For CPVC event organizers, reduce food, drink, and swag shortages and waste, measured by moving from registration based planning with a rough 40% attendance assumption forecasts within 10 % of actual attendance for at least 80% of events, without using sensitive personal data, repeatedly messaging participants, automatically purchasing supplies, or making final decisions without organizer approval. 
 
 ### Who Is Better Off When This Works?
-
-[In one complete sentence, identify who will be better off when the system works.]
+CPVC organizers can plan event supplies with greater confidence and fewer shortages or unnecessary purchases, while student participants are more likely to receive adequate food, drinks, and swag. 
