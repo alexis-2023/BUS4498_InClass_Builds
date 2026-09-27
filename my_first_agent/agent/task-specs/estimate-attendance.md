@@ -1,17 +1,5 @@
 # Estimate Attendance Task Specification
 
-Create one copy of this template for each Level 3 task identified in class (For this in-class build practice, having one Level 3 task is sufficient).
-
-Save each copy in `my_first_agent/agent/task-specs/`. Rename the file using the task name in lowercase, with hyphens between words. Replace `&` with `and` and remove other punctuation.
-
-Examples:
-
-- `Grade Item Condition` becomes `grade-item-condition.md`
-- `Customer Dispute & Compensation Assessment` becomes `customer-dispute-and-compensation-assessment.md`
-
-Keep the **exact** task ID and task name from `workflow-of-tasks.md` inside the file. Replace all bracketed prompts. Leave Section 3 empty; tool permissions and boundaries will be added next week. 
-
-*Remove this sentence and the instructions above before your submission.*
 
 ```yaml
 # BASIC INFORMATION
@@ -112,7 +100,7 @@ Stop at the first applicable task limit or handoff condition. While awaiting rev
 
 ## 6. Outbound Deliverable
 
-*Remove this instruction before your submission.* Below are the default outbound deliverable items. Please revise as needed or leave them as they are if they fit your Level 3 task.
+
 
 - **Status:** completed or escalated to human.
 - **Result or recommendation:** The completed result. If the task was escalated before reaching a supported result, write undetermined.
