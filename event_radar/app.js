@@ -5,6 +5,7 @@
   const board = document.getElementById("event-board");
   const postForm = document.getElementById("post-form");
   const announcementInput = document.getElementById("announcement");
+  const flyerInput = document.getElementById("flyer");
   const submitButton = document.getElementById("submit-button");
   const refreshButton = document.getElementById("refresh-button");
   const result = document.getElementById("result");
@@ -13,6 +14,7 @@
   const resultReasons = document.getElementById("result-reasons");
   const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
   const state = { events: [], freeFoodOnly: false };
+  const maxFlyerBytes = 5 * 1024 * 1024;
 
   function fetchWithApiKeyOnly(input, init) {
     const request = new Request(input, init);
@@ -95,6 +97,17 @@
     return value === "free" || value === "$0" || value === "0" || value === "no cost";
   }
 
+  function isProjectFlyerUrl(value) {
+    if (typeof value !== "string" || !value) return false;
+    try {
+      const url = new URL(value);
+      const projectUrl = new URL(config.supabaseUrl);
+      return url.origin === projectUrl.origin && url.pathname.indexOf("/storage/v1/object/public/flyers/") === 0;
+    } catch (error) {
+      return false;
+    }
+  }
+
   function renderBoardMessage(message) {
     clearElement(board);
     board.appendChild(makeElement("li", "empty", message));
@@ -133,6 +146,13 @@
 
     item.appendChild(date);
     item.appendChild(body);
+    if (isProjectFlyerUrl(event.flyer_url)) {
+      const flyer = makeElement("img", "flyer");
+      flyer.src = event.flyer_url;
+      flyer.alt = (event.title || "Event") + " flyer";
+      flyer.loading = "lazy";
+      item.appendChild(flyer);
+    }
     return item;
   }
 
@@ -173,7 +193,7 @@
     renderBoardMessage("Loading events…");
     const response = await supabaseClient
       .from("events")
-      .select("id, created_at, status, title, club, event_date, start_time, end_time, place_name, place_detail, cost, free_food, summary")
+      .select("id, created_at, status, title, club, event_date, start_time, end_time, place_name, place_detail, cost, free_food, summary, flyer_url")
       .eq("status", "published")
       .order("event_date", { ascending: true, nullsFirst: false })
       .order("start_time", { ascending: true, nullsFirst: false });
@@ -197,10 +217,23 @@
       return;
     }
 
+    const flyer = flyerInput.files && flyerInput.files[0];
+    if (flyer) {
+      if (flyer.size > maxFlyerBytes) {
+        showResult("error", "The flyer must be 5 MB or smaller.", []);
+        return;
+      }
+      if (flyer.type !== "image/jpeg" && flyer.type !== "image/png") {
+        showResult("error", "The flyer must be a JPG or PNG image.", []);
+        return;
+      }
+    }
+
     submitButton.disabled = true;
     submitButton.textContent = "Checking announcement…";
     const formData = new FormData();
     formData.append("announcement", announcement);
+    if (flyer) formData.append("flyer", flyer, flyer.name);
 
     try {
       const response = await fetch(agentUrl, {
@@ -215,7 +248,7 @@
       }
 
       showResult(body.status, body.message, body.reasons);
-      announcementInput.value = "";
+      postForm.reset();
       if (body.status === "published") await loadEvents();
     } catch (error) {
       console.error("Could not submit announcement", error);
