@@ -12,14 +12,27 @@
   const resultLabel = document.getElementById("result-label");
   const resultMessage = document.getElementById("result-message");
   const resultReasons = document.getElementById("result-reasons");
+  const signInForm = document.getElementById("sign-in-form");
+  const signOutButton = document.getElementById("sign-out-button");
+  const moderatorSignedOut = document.getElementById("moderator-signed-out");
+  const moderatorSignedIn = document.getElementById("moderator-signed-in");
+  const moderatorAccount = document.getElementById("moderator-account");
+  const moderatorResult = document.getElementById("moderator-result");
+  const moderatorResultLabel = document.getElementById("moderator-result-label");
+  const moderatorResultMessage = document.getElementById("moderator-result-message");
+  const waitingBoard = document.getElementById("waiting-board");
   const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
   const state = { events: [], freeFoodOnly: false };
   const maxFlyerBytes = 5 * 1024 * 1024;
+  let moderatorSession = null;
 
   function fetchWithApiKeyOnly(input, init) {
     const request = new Request(input, init);
     const headers = new Headers(request.headers);
-    headers.delete("authorization");
+    const authorization = headers.get("authorization") || "";
+    if (!authorization || /^Bearer\s+sb_/i.test(authorization)) {
+      headers.delete("authorization");
+    }
     headers.set("apikey", config.publishableKey);
     return window.fetch(request, { headers: headers });
   }
@@ -113,7 +126,7 @@
     board.appendChild(makeElement("li", "empty", message));
   }
 
-  function renderEvent(event) {
+  function renderEvent(event, review) {
     const item = makeElement("li", "event");
     const dateParts = formatDateParts(event.event_date);
     const date = makeElement("div", dateParts ? "date" : "date tba");
@@ -143,6 +156,23 @@
       tags.appendChild(makeElement("span", "tag food", "🍕 Free food"));
     }
     if (tags.firstChild) body.appendChild(tags);
+
+    if (review) {
+      const reviewBlock = makeElement("div", "review");
+      reviewBlock.appendChild(makeElement("p", "why", review.reason || "Waiting for moderator review."));
+      reviewBlock.appendChild(makeElement("p", "original", review.original || ""));
+      const actions = makeElement("p", "actions");
+      const approveButton = makeElement("button", "", "Approve");
+      approveButton.type = "button";
+      approveButton.addEventListener("click", review.onApprove);
+      const rejectButton = makeElement("button", "ghost", "Reject");
+      rejectButton.type = "button";
+      rejectButton.addEventListener("click", review.onReject);
+      actions.appendChild(approveButton);
+      actions.appendChild(rejectButton);
+      reviewBlock.appendChild(actions);
+      body.appendChild(reviewBlock);
+    }
 
     item.appendChild(date);
     item.appendChild(body);
@@ -208,6 +238,110 @@
     renderEvents();
   }
 
+  function showModeratorResult(kind, message) {
+    moderatorResult.className = "result " + (kind === "success" ? "published" : "error");
+    moderatorResult.hidden = false;
+    moderatorResultLabel.textContent = kind === "success" ? "Done" : "Sign-in problem";
+    moderatorResultMessage.textContent = message;
+  }
+
+  async function loadWaitingEvents() {
+    if (!moderatorSession) return;
+    clearElement(waitingBoard);
+    waitingBoard.appendChild(makeElement("li", "empty", "Loading waiting posts…"));
+    const response = await supabaseClient
+      .from("events")
+      .select("id, created_at, status, title, club, event_date, start_time, end_time, place_name, place_detail, cost, free_food, summary, flyer_url, announcement, status_reason")
+      .eq("status", "waiting")
+      .order("created_at", { ascending: true });
+
+    if (response.error) {
+      console.error("Could not load waiting events", response.error);
+      clearElement(waitingBoard);
+      waitingBoard.appendChild(makeElement("li", "empty", "We could not load waiting posts right now."));
+      return;
+    }
+
+    clearElement(waitingBoard);
+    if (!response.data || response.data.length === 0) {
+      waitingBoard.appendChild(makeElement("li", "empty", "No posts are waiting for review."));
+      return;
+    }
+
+    response.data.forEach(function (event) {
+      waitingBoard.appendChild(renderEvent(event, {
+        reason: event.status_reason,
+        original: event.announcement,
+        onApprove: function () { reviewEvent(event.id, "published"); },
+        onReject: function () { reviewEvent(event.id, "rejected"); },
+      }));
+    });
+  }
+
+  async function reviewEvent(eventId, nextStatus) {
+    if (!moderatorSession) return;
+    const statusReason = nextStatus === "published"
+      ? "Approved by moderator."
+      : "Rejected by moderator.";
+    const response = await supabaseClient
+      .from("events")
+      .update({
+        status: nextStatus,
+        status_reason: statusReason,
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: moderatorSession.user.id,
+      })
+      .eq("id", eventId);
+
+    if (response.error) {
+      console.error("Could not review event", response.error);
+      showModeratorResult("error", "The post could not be updated.");
+      return;
+    }
+
+    showModeratorResult("success", nextStatus === "published" ? "The event was approved." : "The event was rejected.");
+    await loadWaitingEvents();
+    await loadEvents();
+  }
+
+  function setModeratorSession(session) {
+    moderatorSession = session;
+    const signedIn = Boolean(session);
+    moderatorSignedOut.hidden = signedIn;
+    moderatorSignedIn.hidden = !signedIn;
+    if (signedIn) {
+      moderatorAccount.textContent = "Signed in as " + (session.user.email || "moderator");
+      window.setTimeout(loadWaitingEvents, 0);
+    } else {
+      moderatorAccount.textContent = "";
+      clearElement(waitingBoard);
+      moderatorResult.hidden = true;
+    }
+  }
+
+  async function signInModerator(event) {
+    event.preventDefault();
+    const formData = new FormData(signInForm);
+    const email = String(formData.get("email") || "").trim();
+    const password = String(formData.get("password") || "");
+    const response = await supabaseClient.auth.signInWithPassword({ email: email, password: password });
+    if (response.error) {
+      console.error("Moderator sign-in failed", response.error);
+      showModeratorResult("error", "The email or password was not accepted.");
+      return;
+    }
+    signInForm.reset();
+    showModeratorResult("success", "Signed in. Waiting posts are shown below.");
+  }
+
+  async function signOutModerator() {
+    const response = await supabaseClient.auth.signOut();
+    if (response.error) {
+      console.error("Moderator sign-out failed", response.error);
+      showModeratorResult("error", "The moderator could not be signed out.");
+    }
+  }
+
   async function submitAnnouncement(event) {
     event.preventDefault();
     const announcement = announcementInput.value.trim();
@@ -261,6 +395,14 @@
 
   postForm.addEventListener("submit", submitAnnouncement);
   refreshButton.addEventListener("click", loadEvents);
+  signInForm.addEventListener("submit", signInModerator);
+  signOutButton.addEventListener("click", signOutModerator);
+  supabaseClient.auth.onAuthStateChange(function (_event, session) {
+    setModeratorSession(session);
+  });
+  supabaseClient.auth.getSession().then(function (response) {
+    setModeratorSession(response.data.session);
+  });
   filterButtons.forEach(function (button) {
     button.addEventListener("click", function () {
       state.freeFoodOnly = button.dataset.filter === "free-food";

@@ -54,6 +54,30 @@
         <button class="chip" type="button" data-filter="free-food" aria-pressed="false">Free food</button>
       </div>
       <ul class="board" id="event-board" aria-live="polite"></ul>
+
+      <details class="card mod" id="moderator-panel">
+        <summary>Moderator sign-in</summary>
+        <div id="moderator-signed-out">
+          <p class="muted">Sign in to review posts that are waiting for approval.</p>
+          <form id="sign-in-form">
+            <label for="moderator-email">Email</label>
+            <input id="moderator-email" name="email" type="email" autocomplete="username" required>
+            <label for="moderator-password">Password</label>
+            <input id="moderator-password" name="password" type="password" autocomplete="current-password" required>
+            <button type="submit">Sign in</button>
+          </form>
+        </div>
+        <div id="moderator-signed-in" hidden>
+          <p class="muted" id="moderator-account"></p>
+          <button class="ghost" type="button" id="sign-out-button">Sign out</button>
+          <h3>Posts waiting for review</h3>
+          <ul class="board preview" id="waiting-board" aria-live="polite"></ul>
+        </div>
+        <div id="moderator-result" class="result" hidden role="status" aria-live="polite">
+          <p class="result-label" id="moderator-result-label"></p>
+          <p id="moderator-result-message"></p>
+        </div>
+      </details>
     </section>
   </main>
 
