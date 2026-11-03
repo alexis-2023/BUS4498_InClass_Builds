@@ -128,6 +128,8 @@ button.ghost:hover { border-color: var(--accent); box-shadow: none; }
 .original { color: var(--muted); font-size: .9rem; white-space: pre-wrap; overflow-wrap: anywhere; }
 .actions { display: flex; gap: 8px; }
 .actions button { margin-top: 0; }
+.lessons { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 8px; }
+.lesson { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink-2); background: var(--bg); }
 
 /* ---------- footer ---------- */
 .foot { color: var(--muted); font-size: .88rem; padding: 8px 20px 36px; }

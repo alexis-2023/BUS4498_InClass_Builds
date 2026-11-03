@@ -21,6 +21,9 @@
   const moderatorResultLabel = document.getElementById("moderator-result-label");
   const moderatorResultMessage = document.getElementById("moderator-result-message");
   const waitingBoard = document.getElementById("waiting-board");
+  const lessonForm = document.getElementById("lesson-form");
+  const lessonInput = document.getElementById("lesson");
+  const lessonsBoard = document.getElementById("lessons-board");
   const filterButtons = Array.from(document.querySelectorAll("[data-filter]"));
   const state = { events: [], freeFoodOnly: false };
   const maxFlyerBytes = 5 * 1024 * 1024;
@@ -278,6 +281,50 @@
     });
   }
 
+  async function loadLessons() {
+    if (!moderatorSession) return;
+    clearElement(lessonsBoard);
+    lessonsBoard.appendChild(makeElement("li", "empty", "Loading lessons…"));
+    const response = await supabaseClient
+      .from("agent_lessons")
+      .select("id, lesson, created_at")
+      .order("created_at", { ascending: false });
+
+    if (response.error) {
+      console.error("Could not load agent lessons", response.error);
+      clearElement(lessonsBoard);
+      lessonsBoard.appendChild(makeElement("li", "empty", "We could not load lessons right now."));
+      return;
+    }
+
+    clearElement(lessonsBoard);
+    if (!response.data || response.data.length === 0) {
+      lessonsBoard.appendChild(makeElement("li", "empty", "No lessons yet."));
+      return;
+    }
+    response.data.forEach(function (lesson) {
+      lessonsBoard.appendChild(makeElement("li", "lesson", lesson.lesson));
+    });
+  }
+
+  async function saveLesson(event) {
+    event.preventDefault();
+    if (!moderatorSession) return;
+    const lesson = lessonInput.value.trim();
+    if (!lesson) return;
+    const response = await supabaseClient
+      .from("agent_lessons")
+      .insert({ lesson: lesson, created_by: moderatorSession.user.id });
+    if (response.error) {
+      console.error("Could not save agent lesson", response.error);
+      showModeratorResult("error", "The lesson could not be saved.");
+      return;
+    }
+    lessonForm.reset();
+    showModeratorResult("success", "The lesson was saved for the agent.");
+    await loadLessons();
+  }
+
   async function reviewEvent(eventId, nextStatus) {
     if (!moderatorSession) return;
     const statusReason = nextStatus === "published"
@@ -311,10 +358,14 @@
     moderatorSignedIn.hidden = !signedIn;
     if (signedIn) {
       moderatorAccount.textContent = "Signed in as " + (session.user.email || "moderator");
-      window.setTimeout(loadWaitingEvents, 0);
+      window.setTimeout(function () {
+        loadWaitingEvents();
+        loadLessons();
+      }, 0);
     } else {
       moderatorAccount.textContent = "";
       clearElement(waitingBoard);
+      clearElement(lessonsBoard);
       moderatorResult.hidden = true;
     }
   }
@@ -397,6 +448,7 @@
   refreshButton.addEventListener("click", loadEvents);
   signInForm.addEventListener("submit", signInModerator);
   signOutButton.addEventListener("click", signOutModerator);
+  lessonForm.addEventListener("submit", saveLesson);
   supabaseClient.auth.onAuthStateChange(function (_event, session) {
     setModeratorSession(session);
   });

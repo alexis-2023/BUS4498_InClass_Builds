@@ -72,6 +72,14 @@
           <button class="ghost" type="button" id="sign-out-button">Sign out</button>
           <h3>Posts waiting for review</h3>
           <ul class="board preview" id="waiting-board" aria-live="polite"></ul>
+          <h3>Agent lessons</h3>
+          <p class="muted">Write one short lesson for the agent to read before its next decision.</p>
+          <form id="lesson-form">
+            <label for="lesson">One-sentence lesson</label>
+            <input id="lesson" name="lesson" maxlength="280" required placeholder="Example: Treat ‘snacks maybe’ as not enough evidence for free food.">
+            <button type="submit">Save lesson</button>
+          </form>
+          <ul class="lessons" id="lessons-board" aria-live="polite"></ul>
         </div>
         <div id="moderator-result" class="result" hidden role="status" aria-live="polite">
           <p class="result-label" id="moderator-result-label"></p>
