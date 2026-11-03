@@ -3,95 +3,118 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <meta name="description" content="Find and share events from campus clubs.">
   <title>Club Event Radar</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="top">
-    <div class="wrap">
-      <p class="kicker">Campus clubs, one calendar</p>
-      <h1>Club Event Radar</h1>
-      <p class="lede">Turn club announcements into clear event cards so students can find what is happening on campus.</p>
-      <ul class="badges" aria-label="Event Radar features">
-        <li>Student-led</li>
-        <li>AI-assisted</li>
-        <li>Moderator-checked</li>
-      </ul>
+  <header class="topbar">
+    <div class="wrap bar">
+      <a class="brand" href="#top"><span class="logo" aria-hidden="true"></span>Club Event Radar</a>
+      <nav class="actions" aria-label="Site actions">
+        <span class="live" id="live" title="The board updates by itself"><span class="dot"></span>Live</span>
+        <button type="button" class="ghost small" id="openPost">+ Post<span class="long"> an event</span></button>
+        <button type="button" class="ghost small" id="openMod">Moderator</button>
+      </nav>
     </div>
   </header>
 
-  <main class="wrap layout">
-    <section class="card post" aria-labelledby="post-heading">
-      <h2 id="post-heading">Post an event</h2>
-      <p class="muted">Paste the announcement as you received it. The agent will turn it into an event card.</p>
-      <form id="post-form">
-        <label for="announcement">
-          Announcement
-          <span class="hint">1–2,000 characters</span>
-        </label>
-        <textarea id="announcement" name="announcement" maxlength="2000" required placeholder="Example: Board Game Guild: Game Night! Thursday, October 29, 7 to 10 pm in the University Union, Room 220."></textarea>
-        <label for="flyer">
-          Flyer photo <span class="hint">Optional JPG or PNG, up to 5 MB</span>
-        </label>
-        <input id="flyer" name="flyer" type="file" accept="image/jpeg,image/png">
-        <button type="submit" id="submit-button">Post announcement</button>
-      </form>
-      <div id="result" class="result" hidden role="status" aria-live="polite">
-        <p class="result-label" id="result-label"></p>
-        <p id="result-message"></p>
-        <ul class="reasons" id="result-reasons"></ul>
-      </div>
-    </section>
+  <section class="hero" id="top">
+    <div class="wrap">
+      <p class="kicker">Campus clubs · live board</p>
+      <h1>What’s happening <em>on campus</em></h1>
+      <p class="lede">Clubs post announcements. An AI agent turns each one into a clear event card, checks the posting rules, and remembers what it has already seen.</p>
+      <ul class="stats" aria-label="Board summary">
+        <li><b id="statCount">0</b><span>events</span></li>
+        <li><b id="statWeek">0</b><span>this week</span></li>
+        <li><b id="statFood">0</b><span>with free food</span></li>
+      </ul>
+    </div>
+  </section>
 
-    <section class="board-section" aria-labelledby="board-heading">
-      <div class="board-head">
-        <h2 id="board-heading">Upcoming events</h2>
-        <button class="ghost" type="button" id="refresh-button">Refresh</button>
+  <main class="wrap" id="main">
+    <div class="toolbar">
+      <div class="filters" id="filters" role="group" aria-label="Show">
+        <button type="button" class="chip" data-filter="all" aria-pressed="true">All</button>
+        <button type="button" class="chip" data-filter="week" aria-pressed="false">This week</button>
+        <button type="button" class="chip" data-filter="food" aria-pressed="false">🍕 Free food</button>
+        <button type="button" class="chip" data-filter="online" aria-pressed="false">Online</button>
       </div>
-      <div class="filters" aria-label="Event filters">
-        <button class="chip" type="button" data-filter="all" aria-pressed="true">All events</button>
-        <button class="chip" type="button" data-filter="free-food" aria-pressed="false">Free food</button>
-      </div>
-      <ul class="board" id="event-board" aria-live="polite"></ul>
-
-      <details class="card mod" id="moderator-panel">
-        <summary>Moderator sign-in</summary>
-        <div id="moderator-signed-out">
-          <p class="muted">Sign in to review posts that are waiting for approval.</p>
-          <form id="sign-in-form">
-            <label for="moderator-email">Email</label>
-            <input id="moderator-email" name="email" type="email" autocomplete="username" required>
-            <label for="moderator-password">Password</label>
-            <input id="moderator-password" name="password" type="password" autocomplete="current-password" required>
-            <button type="submit">Sign in</button>
-          </form>
-        </div>
-        <div id="moderator-signed-in" hidden>
-          <p class="muted" id="moderator-account"></p>
-          <button class="ghost" type="button" id="sign-out-button">Sign out</button>
-          <h3>Posts waiting for review</h3>
-          <ul class="board preview" id="waiting-board" aria-live="polite"></ul>
-          <h3>Agent lessons</h3>
-          <p class="muted">Write one short lesson for the agent to read before its next decision.</p>
-          <form id="lesson-form">
-            <label for="lesson">One-sentence lesson</label>
-            <input id="lesson" name="lesson" maxlength="280" required placeholder="Example: Treat ‘snacks maybe’ as not enough evidence for free food.">
-            <button type="submit">Save lesson</button>
-          </form>
-          <ul class="lessons" id="lessons-board" aria-live="polite"></ul>
-        </div>
-        <div id="moderator-result" class="result" hidden role="status" aria-live="polite">
-          <p class="result-label" id="moderator-result-label"></p>
-          <p id="moderator-result-message"></p>
-        </div>
-      </details>
-    </section>
+      <button type="button" class="ghost small" id="refreshBtn">Refresh</button>
+    </div>
+    <p id="boardStatus" class="muted status" role="status" aria-live="polite"></p>
+    <div id="board" class="board"></div>
   </main>
 
   <footer class="wrap foot">
-    <p>Club Event Radar · A BUS 4498 practice build</p>
+    <p>A practice website for BUS 4498 · Club Event Radar <span id="aiNote"></span></p>
   </footer>
+
+  <div class="scrim" id="scrim" hidden></div>
+
+  <aside class="drawer" id="postDrawer" aria-labelledby="postTitle" hidden>
+    <div class="panel">
+      <header class="panel-head">
+        <h2 id="postTitle">Post an event</h2>
+        <button type="button" class="close" data-close aria-label="Close">✕</button>
+      </header>
+      <p class="muted">Paste the announcement as you received it. The agent will turn it into an event card.</p>
+      <form id="postForm">
+        <label for="announcement">Announcement <span class="hint">Paste the group-chat message, caption, or flyer text.</span></label>
+        <textarea id="announcement" name="announcement" rows="6" maxlength="2000" required placeholder="Board Game Guild: Game Night! Thursday, 7 to 10 pm in the University Union, Room 220. Free pizza!"></textarea>
+        <label for="flyer">Flyer photo <span class="hint">Optional JPG or PNG, up to 5 MB. Posts with a photo wait for a moderator.</span></label>
+        <input id="flyer" name="flyer" type="file" accept="image/jpeg,image/png">
+        <button type="submit" id="postBtn">Post it</button>
+      </form>
+      <div id="postResult" class="result" role="status" aria-live="polite" hidden></div>
+    </div>
+  </aside>
+
+  <aside class="drawer" id="modDrawer" aria-labelledby="modTitle" hidden>
+    <div class="panel">
+      <header class="panel-head">
+        <h2 id="modTitle">Moderator</h2>
+        <button type="button" class="close" data-close aria-label="Close">✕</button>
+      </header>
+      <form id="signInForm">
+        <label for="modEmail">Email</label>
+        <input id="modEmail" type="email" autocomplete="username" required>
+        <label for="modPassword">Password</label>
+        <input id="modPassword" type="password" autocomplete="current-password" required>
+        <button type="submit" id="signInBtn">Sign in</button>
+        <p id="signInMsg" class="muted" role="status"></p>
+      </form>
+      <div id="modArea" hidden>
+        <p class="who">Signed in as <b id="modWho"></b> <button type="button" class="ghost small" id="signOutBtn">Sign out</button></p>
+        <div class="tabs" role="tablist" aria-label="Moderator sections">
+          <button type="button" class="tab" role="tab" data-tab="waiting" aria-selected="true">Waiting <span class="count" id="waitingCount">0</span></button>
+          <button type="button" class="tab" role="tab" data-tab="lessons" aria-selected="false">Lessons <span class="count" id="lessonsCount">0</span></button>
+        </div>
+        <section class="tabpanel" data-panel="waiting">
+          <p id="waitingStatus" class="muted" role="status"></p>
+          <ul id="waitingList" class="queue"></ul>
+        </section>
+        <section class="tabpanel" data-panel="lessons" hidden>
+          <p class="muted">Write one short lesson for the agent to read before its next decision.</p>
+          <form id="teachForm" class="teach">
+            <label for="lessonText">Teach the agent something <span class="hint">One sentence, up to 280 characters.</span></label>
+            <textarea id="lessonText" rows="2" maxlength="280" required placeholder="Treat ‘snacks maybe’ as not enough evidence for free food."></textarea>
+            <button type="submit" id="teachBtn">Save the lesson</button>
+            <p id="teachMsg" class="muted" role="status"></p>
+          </form>
+          <p id="lessonsStatus" class="muted" role="status"></p>
+          <ul id="lessonsList" class="lessons"></ul>
+        </section>
+        <div id="moderatorResult" class="result" hidden role="status" aria-live="polite">
+          <p class="result-label" id="moderatorResultLabel"></p>
+          <p id="moderatorResultMessage"></p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
   <script src="config.js"></script>
