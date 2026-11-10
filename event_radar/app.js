@@ -166,6 +166,11 @@
       const ids = Array.isArray(value.lesson_ids) ? value.lesson_ids : [];
       return "Moderator lessons: read " + ids.length + " lesson(s).";
     }
+    if (source === "chat_reader") {
+      const channel = value.channel || "chat";
+      const sender = value.sender ? " from " + value.sender : "";
+      return "Chat reader: read one " + channel + " message" + sender + ".";
+    }
     return "Checked " + source + ".";
   }
 
@@ -397,7 +402,7 @@
     clearElement(lessonsList);
     const response = await supabaseClient
       .from("agent_lessons")
-      .select("id, lesson, created_at")
+      .select("id, lesson, created_at, active")
       .order("created_at", { ascending: false });
     if (response.error) {
       console.error("Could not load agent lessons", response.error);
@@ -413,11 +418,41 @@
       return;
     }
     lessons.forEach(function (lesson) {
-      const item = makeElement("li", "lesson");
-      item.appendChild(makeElement("p", "lesson-text", lesson.lesson));
-      item.appendChild(makeElement("p", "lesson-meta", "Saved " + new Date(lesson.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })));
+      const item = makeElement("li", "lesson" + (lesson.active ? "" : " off"));
+      const toggleLabel = makeElement("label", "switch");
+      toggleLabel.title = lesson.active ? "Switch lesson off" : "Switch lesson on";
+      const toggle = document.createElement("input");
+      toggle.type = "checkbox";
+      toggle.checked = lesson.active === true;
+      toggle.setAttribute("aria-label", (lesson.active ? "Turn off" : "Turn on") + " lesson: " + lesson.lesson);
+      toggle.addEventListener("change", function () { toggleLesson(lesson.id, toggle.checked, item, toggle); });
+      toggleLabel.appendChild(toggle);
+      toggleLabel.appendChild(makeElement("span", "knob"));
+
+      const body = makeElement("div", "lesson-body");
+      body.appendChild(makeElement("p", "lesson-text", lesson.lesson));
+      body.appendChild(makeElement("p", "lesson-meta", (lesson.active ? "On · " : "Off · ") + "Saved " + new Date(lesson.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })));
+      item.appendChild(toggleLabel);
+      item.appendChild(body);
       lessonsList.appendChild(item);
     });
+  }
+
+  async function toggleLesson(lessonId, active, item, toggle) {
+    if (!moderatorSession) return;
+    const response = await supabaseClient
+      .from("agent_lessons")
+      .update({ active: active })
+      .eq("id", lessonId);
+    if (response.error) {
+      console.error("Could not change agent lesson status", response.error);
+      toggle.checked = !active;
+      showModeratorResult(false, "The lesson could not be switched " + (active ? "on." : "off."));
+      return;
+    }
+    item.classList.toggle("off", !active);
+    toggle.parentElement.title = active ? "Switch lesson off" : "Switch lesson on";
+    showToast(active ? "Lesson switched on" : "Lesson switched off");
   }
 
   async function saveLesson(event) {

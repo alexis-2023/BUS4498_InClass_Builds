@@ -2,3 +2,6 @@
 # The website calls the AI agent with the publishable key, which isn't a JWT, so JWT verification is off.
 [functions.submit-event]
 verify_jwt = false
+
+[functions.read-channel]
+verify_jwt = false
